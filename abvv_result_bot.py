@@ -2,11 +2,13 @@ import telebot
 from bs4 import BeautifulSoup
 from telebot import types
 import requests
+from flask import Flask, request
 import re
 
-Token = '6900705999:AAG5QVR8-ACSc8k6RmZ8qQ9oZaFQOPoRfYk'
+TOKEN = '6900705999:AAG5QVR8-ACSc8k6RmZ8qQ9oZaFQOPoRfYk'
+URL = os.getenv("URL")
 
-bot = telebot.TeleBot(Token)
+bot = telebot.TeleBot(TOKEN)
 
 
 site_url = 'https://resulthour.com/cg/bilaspur-university/'
@@ -131,3 +133,26 @@ def start(message):
     # bot.send_message(message.chat.id, "If your course in not here. Enter here...")
 
 bot.polling(none_stop=True)
+
+app = Flask(__name__)
+
+
+@app.route('/')
+def index():
+    return 'Hello World!'
+
+
+# @app.route('/{}'.format(TOKEN), methods=['GET', 'POST'])
+# def respond():
+#     update = Update.de_json(request.get_json(force=True), bot)
+#     setup().process_update(update)
+#     return 'ok'
+
+
+# @app.route('/setwebhook', methods=['GET', 'POST'])
+# def set_webhook():
+#     s = bot.setWebhook('{URL}/{HOOK}'.format(URL=URL, HOOK=TOKEN))
+#     if s:
+#         return "webhook setup ok"
+#     else:
+#         return "webhook setup failed"
