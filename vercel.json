@@ -2,7 +2,7 @@
     "version": 2,
     "builds": [
         {
-            "src": "./index.py",
+            "src": "./abvv_result_bot.py",
             "use": "@vercel/python"
         }
     ],
