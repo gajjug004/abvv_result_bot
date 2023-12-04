@@ -1,7 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import (ReplyKeyboardMarkup, InlineKeyboardMarkup,
                             InlineKeyboardButton)
-from dotenv import load_dotenv
 import os
 import re
 import scraper as s
@@ -9,7 +8,6 @@ import scraper as s
 links = s.get_latest_links()
 eid = []
 
-load_dotenv()
 
 api_id = os.getenv("api_id")
 api_hash = os.getenv("api_hash")
