@@ -1,6 +1,5 @@
 pyrogram
 TgCrypto
-dotenv
 bs4
 fuzzywuzzy
 Flask==2.2.2
