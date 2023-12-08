@@ -46,6 +46,12 @@ async def start(bot, message):
         )
     )
 
+@app.on_message(filters.command("members") & filters.user(1117004028))
+async def count_mem(client, message):
+    c = count_records()
+    message_to_send = f"We have {c} members..."
+    await client.send_message(chat_id=1117004028, text=message_to_send)
+
 @app.on_message(filters.command("search_by_keyword") & filters.private)
 async def start(bot, message):   
     await bot.send_message(message.chat.id, 'Enter keyword to search:')
@@ -64,7 +70,7 @@ async def result(client, message):
         res = s.get_your_result(eid,roll_number)
         await client.send_message(chat_id, res)
 
-        clear_callback_data(user_id)
+        # clear_callback_data(user_id)
     else :
         await client.send_message(chat_id, 'Run the command \n/latest_result or \n/search_by_keyword \nThen select the course from given links...')
 
@@ -110,7 +116,15 @@ async def answer(client, callback_query):
 def store_callback_data(user_id, data):
     conn = sqlite3.connect('user_data.db')
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO user_data (user_id, callback_data) VALUES (?, ?)", (user_id, data))
+    existing_data = get_callback_data(user_id)
+
+    if existing_data:
+        # Update the existing callback data
+        cursor.execute("UPDATE user_data SET callback_data=? WHERE user_id=?", (data, user_id))
+    else:
+        # Store the new callback data
+        cursor.execute("INSERT INTO user_data (user_id, callback_data) VALUES (?, ?)", (user_id, data))
+
     conn.commit()
     conn.close()
 
@@ -131,7 +145,13 @@ def clear_callback_data(user_id):
     conn.commit()
     conn.close()
 
-
+def count_records():
+    conn = sqlite3.connect('user_data.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM user_data")
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else 0
 
 if __name__ == "__main__":
     conn = sqlite3.connect('user_data.db')
