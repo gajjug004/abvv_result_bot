@@ -4,6 +4,7 @@ from pyrogram.types import (ReplyKeyboardMarkup, InlineKeyboardMarkup,
 import os
 import re
 import scraper as s
+import static_data as sd
 import sqlite3
 
 links = s.get_latest_links()
@@ -66,10 +67,11 @@ async def result(client, message):
 
     if eid:
         roll_number = message.text
-
+        file_name = str(eid)+str(roll_number)+'.png'
         res = s.get_your_result(eid,roll_number)
         await client.send_message(chat_id, res)
-
+        await client.send_photo(chat_id, file_name, caption="Your Marks Detail")
+        os.remove(file_name)
         # clear_callback_data(user_id)
     else :
         await client.send_message(chat_id, 'Run the command \n/latest_result or \n/search_by_keyword \nThen select the course from given links...')
@@ -80,8 +82,8 @@ async def result(client, message):
     text = message.text
     # l1 = s.for_first_page()
     l2 = s.for_all_pages()
-    results = links + s.results
-    keyword_links = s.search_names_by_keyword(text,results)
+    result_links = links + sd.results
+    keyword_links = s.search_names_by_keyword(text,result_links)
     # print(len(keyword_links))
     if keyword_links != "No result found...":
         await client.send_message(
@@ -105,7 +107,7 @@ async def answer(client, callback_query):
     # print(callback_query)
     # global eid
     # eid = callback_query.data
-    for i in links:
+    for i in sd.results:
         if i['eid'] == data:
             eid_data = i['date'] + " " + i['course']
     await callback_query.edit_message_text(eid_data)
