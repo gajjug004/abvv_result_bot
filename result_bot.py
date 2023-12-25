@@ -3,13 +3,11 @@ from pyrogram.types import (ReplyKeyboardMarkup, InlineKeyboardMarkup,
                             InlineKeyboardButton)
 import os
 import re
+import csv
 import scraper as s
-import static_data as sd
 import sqlite3
 
 links = s.get_latest_links()
-eid = []
-
 
 api_id = os.getenv("api_id")
 api_hash = os.getenv("api_hash")
@@ -21,10 +19,9 @@ app = Client(
     bot_token=bot_token
 )
 
-
 @app.on_message(filters.command("start") & filters.private)
 async def start(bot, message):
-    await bot.send_message(message.chat.id, f'Hello, {message.chat.first_name} \nWelcome to this Channel')
+    await bot.send_message(message.chat.id, f"Hi, {message.chat.first_name} \nI'm a Result Bot from ABVV\nI'm here to help you to find your result quickly")
 
     await bot.send_message(
             message.chat.id,
@@ -55,47 +52,128 @@ async def count_mem(client, message):
 
 @app.on_message(filters.command("search_by_keyword") & filters.private)
 async def start(bot, message):   
-    await bot.send_message(message.chat.id, 'Enter keyword to search:')
-
-@app.on_message(filters.regex(r"\d{6,}") & filters.private)
-async def result(client, message):
-    # await client.send_message(message.chat.id, 'Processing...')
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-
-    eid = get_callback_data(user_id)
-
-    if eid:
-        roll_number = message.text
-        file_name = str(eid)+str(roll_number)+'.png'
-        res = s.get_your_result(eid,roll_number)
-        await client.send_message(chat_id, res)
-        await client.send_photo(chat_id, file_name, caption="Your Marks Detail")
-        os.remove(file_name)
-        # clear_callback_data(user_id)
-    else :
-        await client.send_message(chat_id, 'Run the command \n/latest_result or \n/search_by_keyword \nThen select the course from given links...')
+    await bot.send_message(message.chat.id, 'Enter keyword to search as\n@search [keyword]\ne.g. @search master of computer application')
 
 @app.on_message(filters.text & filters.private)
 async def result(client, message):
     # await client.send_message(message.chat.id, 'Processing...')
-    text = message.text
-    # l1 = s.for_first_page()
-    l2 = s.for_all_pages()
-    result_links = links + sd.results
-    keyword_links = s.search_names_by_keyword(text,result_links)
-    # print(len(keyword_links))
-    if keyword_links != "No result found...":
-        await client.send_message(
-        message.chat.id,
-        "Choose Your Exam :",
-        reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(link['date']+' '+link['course'],callback_data=link['eid'])] for link in keyword_links]
-        )
-    )
-    else:
-        await client.send_message(message.chat.id, 'No result found for the keyword')
+
+    text = message.text.lower()
+
+    # Check if the input is for the search function
+    if text.startswith("@search"):
+        keyword = text[len("@search"):].strip()
         
+        all_links = s.get_all_links_in_var()
+
+        keyword_links = s.search_names_by_keyword(keyword,all_links)
+        
+        if keyword_links != "No result found...":
+            await client.send_message(
+            message.chat.id,
+            "Choose Your Exam :",
+            reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton(link['date']+' '+link['course'],callback_data=link['eid'])] for link in keyword_links]
+            )
+        )
+        else:
+            await client.send_message(message.chat.id, 'No result found for the keyword')
+    
+    # Check if the input is for the call function
+    elif text.startswith("@roll"):
+        roll = text[len("@roll"):].strip()
+        if re.compile(r'\d{6,}').search(str(roll)):
+            chat_id = message.chat.id
+            user_id = message.from_user.id
+
+            eid = get_callback_data(user_id)
+
+            if eid:
+                res = s.get_your_result(eid,roll)
+                await client.send_message(chat_id, res)
+                # clear_callback_data(user_id)
+            else :
+                await client.send_message(chat_id, 'Run the command \n/latest_result or \n/search_by_keyword \nThen select the course from given links...')
+    
+    elif text.startswith("@name"):
+        name = text[len("@name"):].strip()
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+        eid = get_callback_data(user_id)
+        roll = s.get_result_by_name(name,eid)
+        if roll:
+            res = s.get_your_result(eid,roll)
+            await client.send_message(chat_id, res)
+        else:
+            await client.send_message(chat_id, 'Result not found!')
+
+
+@app.on_message(filters.private & filters.document)
+def handle_document(bot, message):
+    # Check if the document is a CSV file
+    if message.document.file_name.endswith(".csv"):
+        # Download the CSV file
+        file_id = message.document.file_id
+        file_path = bot.download_media(file_id)
+        
+        # Rename the file to have a .csv extension
+        csv_file_path = os.path.splitext(file_path)[0] + ".csv"
+        os.rename(file_path, csv_file_path)
+        
+        # Read the CSV file using csv library and store data in lists
+        try:
+            with open(csv_file_path, 'r') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                header = next(csv_reader)  # assuming the first row is the header
+                
+                name_list = None
+                roll_list = None
+                name_column_index = None
+                roll_column_index = None
+                
+                for i, col_name in enumerate(header):
+                    if col_name.lower() == 'name' or col_name.lower() == 'student name':
+                        name_list = []
+                        name_column_index = i
+
+                for i, col_name in enumerate(header):
+                    if col_name.lower() == 'roll no' or col_name.lower() == 'roll number':
+                        roll_list = []
+                        roll_column_index = i
+                
+                if name_list is None and roll_list is None:
+                    # No supported headers found
+                    message.reply_text("No supported headers found. Aborting processing.")
+                    return
+                
+                for row in csv_reader:
+                    for i, value in enumerate(row):
+                        if name_list is not None:
+                            if i is name_column_index:
+                                name_list.append(value)
+                    for i, value in enumerate(row):
+                        if roll_list is not None:
+                            if i is roll_column_index:
+                                roll_list.append(value)
+            
+            # Process the lists as needed
+            if name_list is not None:
+                print(f"Name : {name_list[:]}")
+                
+            if roll_list is not None:
+                print(f"Roll : {roll_list[:]}")
+            
+            # You can also send a reply to the user
+            message.reply_text("CSV file successfully processed!")
+            
+        except Exception as e:
+            print(f"Error processing CSV file: {e}")
+            message.reply_text("Error processing CSV file. Please try again.")
+        finally:
+            # Delete the CSV file after processing
+            os.remove(csv_file_path)
+    else:
+        message.reply_text("Please upload a valid CSV file.")
 
 @app.on_callback_query()
 async def answer(client, callback_query):
@@ -104,15 +182,14 @@ async def answer(client, callback_query):
     data = callback_query.data
 
     store_callback_data(user_id, data)
-    # print(callback_query)
-    # global eid
-    # eid = callback_query.data
-    for i in sd.results:
+
+    all_links = s.get_all_links_in_var()
+
+    for i in all_links:
         if i['eid'] == data:
             eid_data = i['date'] + " " + i['course']
-    await callback_query.edit_message_text(eid_data)
-    await client.send_message(chat_id,"Please enter your roll number:")
-
+    await callback_query.edit_message_text("You have selected:\n"+ eid_data)
+    await client.send_message(chat_id,"Please enter your roll number or name as\n@roll [rollnumber] or\n@name [name]\n e.g. @roll 12345\nand @name Gopal")
 
 # Function to store callback data in the database
 def store_callback_data(user_id, data):
@@ -161,8 +238,6 @@ if __name__ == "__main__":
     cursor.execute("CREATE TABLE IF NOT EXISTS user_data (user_id INTEGER, callback_data TEXT)")
     conn.commit()
     conn.close()
+
     print("I'm alive...")
     app.run()
-
-
-
