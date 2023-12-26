@@ -110,6 +110,10 @@ async def result(client, message):
 
 @app.on_message(filters.private & filters.document)
 def handle_document(bot, message):
+    message.reply_text("Please wait while your request is processing...")
+    chat_id = message.chat.id
+    eid = get_callback_data(chat_id)
+
     # Check if the document is a CSV file
     if message.document.file_name.endswith(".csv"):
         # Download the CSV file
@@ -157,14 +161,13 @@ def handle_document(bot, message):
                                 roll_list.append(value)
             
             # Process the lists as needed
-            if name_list is not None:
-                print(f"Name : {name_list[:]}")
-                
             if roll_list is not None:
-                print(f"Roll : {roll_list[:]}")
+                file = s.get_results_by_rolls(eid,roll_list)
             
+            absolute_path = os.path.abspath(file)
+
             # You can also send a reply to the user
-            message.reply_text("CSV file successfully processed!")
+            bot.send_document(chat_id, document=absolute_path, caption="Students result in CSV file")
             
         except Exception as e:
             print(f"Error processing CSV file: {e}")
@@ -172,6 +175,7 @@ def handle_document(bot, message):
         finally:
             # Delete the CSV file after processing
             os.remove(csv_file_path)
+            os.remove(absolute_path)
     else:
         message.reply_text("Please upload a valid CSV file.")
 
@@ -188,6 +192,11 @@ async def answer(client, callback_query):
     for i in all_links:
         if i['eid'] == data:
             eid_data = i['date'] + " " + i['course']
+    else:
+        for i in links:
+            if i['eid'] == data:
+                eid_data = i['date'] + " " + i['course']
+              
     await callback_query.edit_message_text("You have selected:\n"+ eid_data)
     await client.send_message(chat_id,"Please enter your roll number or name as\n@roll [rollnumber] or\n@name [name]\n e.g. @roll 12345\nand @name Gopal")
 
