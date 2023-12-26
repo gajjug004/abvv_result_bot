@@ -25,7 +25,7 @@ async def start(bot, message):
 
     await bot.send_message(
             message.chat.id,
-            "Get Your Result :",
+            "Get Your Result Now",
             reply_markup=ReplyKeyboardMarkup(
                 [
                     ["/latest_result"],
@@ -192,10 +192,6 @@ async def answer(client, callback_query):
     for i in all_links:
         if i['eid'] == data:
             eid_data = i['date'] + " " + i['course']
-    else:
-        for i in links:
-            if i['eid'] == data:
-                eid_data = i['date'] + " " + i['course']
               
     await callback_query.edit_message_text("You have selected:\n"+ eid_data)
     await client.send_message(chat_id,"Please enter your roll number or name as\n@roll [rollnumber] or\n@name [name]\n e.g. @roll 12345\nand @name Gopal")
