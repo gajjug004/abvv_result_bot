@@ -228,3 +228,120 @@ def get_all_links_in_var():
         data_from_database = 'No records in the database.'
 
     return data_from_database
+
+def get_all_rolls_by_names(names,eid):
+    rolls = []
+    for name in names:
+        name = name.replace(" ", "+")
+        b_link_ = f"https://resulthour.com/Home/byname?exam={eid}&uid=1&name="+name
+        
+        response = requests.get(b_link_)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            tables = soup.find_all('table')
+
+            if len(tables) > 0:
+
+                data = []
+
+                for row in tables[0].find_all('tr'):
+                    cols = row.find_all('td')
+                    if len(cols) == 0:
+                        cols = row.find_all('th')
+                    cols = [ele.text.strip() for ele in cols]
+                    data.append([ele for ele in cols if ele])
+            
+                roll = data[1][2]
+                rolls.append(roll)
+            else :
+                rolls.append('')
+    return rolls
+
+def get_results_by_rolls(eid,rolls):
+    base_url = f'https://resulthour.com/Home/getResult/0?uid=1&eid={eid}&rollno='
+
+    output_results = []
+
+    for roll in rolls:
+        url = base_url + str(roll)
+
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            tables = soup.find_all('table')
+
+            # Check if tables exist
+            if len(tables) > 0:
+
+                personal_details = []
+
+                for row in tables[1].find_all('tr'):
+                    cols = row.find_all('td')
+                    if len(cols) == 0:
+                        cols = row.find_all('th')
+                    cols = [ele.text.strip() for ele in cols]
+                    personal_details.append([ele for ele in cols if ele])
+
+                keys_to_extract = ['Name', 'Roll No']
+                name_and_roll = {}
+
+                for item in personal_details:
+                    if item[0] in keys_to_extract:
+                        if item[0] == 'Roll No':
+                            name_and_roll[item[0]] = int(re.search(r'\d+', item[1]).group())
+                        else:
+                            name_and_roll[item[0]] = item[1]
+
+                final_result = []
+
+                for row in tables[4].find_all('tr'):
+                    cols = row.find_all('td')
+                    if len(cols) == 0:
+                        cols = row.find_all('th')
+                    cols = [ele.text.strip() for ele in cols]
+                    final_result.append([ele for ele in cols if ele])
+
+                extracted_score = final_result[1][1]
+                extracted_numbers = re.findall(r'\d+', extracted_score)
+                formated_numbers = [int(num) for num in extracted_numbers]
+                percentage = (formated_numbers[0] / formated_numbers[1]) * 100
+                formatted_percentage = "{:.2f}".format(percentage)
+
+                Name = name_and_roll['Name']
+                roll = name_and_roll['Roll No']
+                score = str(formated_numbers[0])+"/"+str(formated_numbers[1])
+                result = final_result[2][1]
+
+                output_results.append((formatted_percentage, roll, Name, score, result))
+
+            else:
+                pass
+    
+    output_results.sort(reverse=True)
+    
+    headers = ['Roll Number', 'Student Name', 'Score', 'Percentage', 'Result']
+
+    # Extracting and rearranging the data
+    arranged_data = [(row[1], row[2], row[3], row[0], row[4]) for row in output_results]
+
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%Y%m%d%H%M%S")
+    unique_name = f"_{formatted_time}"
+    file_name = str(eid) + str(unique_name) + '.csv' 
+
+    # Writing to CSV file
+    with open(file_name, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+
+        # Writing headers
+        csvwriter.writerow(headers)
+
+        # Writing data
+        csvwriter.writerows(arranged_data)
+
+    return file_name
+
