@@ -4,6 +4,7 @@ import re
 from fuzzywuzzy import fuzz
 import sqlite3
 from datetime import datetime
+import csv
 
 def get_latest_links():
     site_url = 'https://resulthour.com/cg/bilaspur-university/'
