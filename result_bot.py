@@ -82,7 +82,7 @@ async def result(client, message):
     # Check if the input is for the call function
     elif text.startswith("@roll"):
         roll = text[len("@roll"):].strip()
-        if re.compile(r'\d{6,}').search(str(roll)):
+        if re.compile(r'\d{4,}').search(str(roll)):
             chat_id = message.chat.id
             user_id = message.from_user.id
 
