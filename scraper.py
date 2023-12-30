@@ -189,9 +189,6 @@ def latest_links():
     return latest_link
             
 def update_result_links():
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # print(f"Current time: {current_time}")
-
     latest_link = latest_links()
     top_link = latest_link[0]['course']
     
@@ -208,10 +205,10 @@ def update_result_links():
 
         new_links.reverse()
         insert_new_records(new_links)
-        return current_time,'New records inserted successfully...'
+        return 'New records inserted successfully...'
 
     else:
-        return current_time,"You have nothing..."
+        return "You have nothing..."
 
 def get_all_links_in_var():
     conn = sqlite3.connect('all_results_links.db')
