@@ -35,7 +35,8 @@ async def start(bot, message):
             )
         )
 @app.on_message(filters.command("latest_result") & filters.private)
-async def start(bot, message):   
+async def start(bot, message):
+    s.update_result_links()
     await bot.send_message(
         message.chat.id,
         "Choose Your Exam :",
