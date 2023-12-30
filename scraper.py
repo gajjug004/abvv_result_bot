@@ -150,20 +150,20 @@ def insert_new_records(data_to_insert):
     conn.commit()
     conn.close()
 
-def fetch_old_date():
+def fetch_old_record():
     conn = sqlite3.connect('all_results_links.db')
     cursor = conn.cursor()
 
-    cursor.execute('SELECT date FROM results ORDER BY id DESC LIMIT 1')
+    cursor.execute('SELECT course FROM results ORDER BY id DESC LIMIT 1')
     result = cursor.fetchone()
 
     if result:
-        last_record_date = result[0]
+        last_record = result[0]
     else:
-        last_record_date = 'No records in the database.'
+        last_record = 'No records in the database.'
     
     conn.close()
-    return last_record_date
+    return last_record
 
 def latest_links():
     latest_link = []
@@ -190,26 +190,28 @@ def latest_links():
             
 def update_result_links():
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"Current time: {current_time}")
+    # print(f"Current time: {current_time}")
 
     latest_link = latest_links()
-    new_date = latest_link[0]['date']
-    m_new_date = datetime.strptime(new_date, '%d-%b-%y')
+    top_link = latest_link[0]['course']
+    
+    last_record = fetch_old_record()
 
-    old_date = fetch_old_date()
-    m_old_date = datetime.strptime(old_date, '%d-%b-%y')
+    new_links = []
 
-    if m_old_date != m_new_date:
-        new_link = [
-            link for link in latest_link
-            if m_old_date < datetime.strptime(link['date'], '%d-%b-%y') <= m_new_date
-        ]
-        new_link.reverse()
-        insert_new_records(new_link)
-        return 'New records inserted successfully...'
+    if top_link != last_record:
+        for link in latest_link:
+            if link['course'] == last_record:
+                break
+            else:
+                new_links.append(link)
+
+        new_links.reverse()
+        insert_new_records(new_links)
+        return current_time,'New records inserted successfully...'
 
     else:
-        return "You have nothing..."
+        return current_time,"You have nothing..."
 
 def get_all_links_in_var():
     conn = sqlite3.connect('all_results_links.db')
